@@ -206,9 +206,12 @@ const db = firebase.database();
 //  CLOUDINARY CONFIG
 //  ⚠️ Only Cloud Name + Unsigned Preset are needed here.
 //  NEVER put your API Secret in front-end code.
+//  🔧 FIXED: preset নাম আগে "movielover_unsigned" ছিল, যা আসল
+//     Cloudinary প্রিসেট নামের সাথে মিলছিল না ("movie_lover")।
+//     এই মিসম্যাচের কারণেই আপলোড ১০০% হওয়ার পরও Save হচ্ছিল না।
 // ════════════════════════════════════════════════
 const CLOUD_NAME = "paqs4n2j";
-const UPLOAD_PRESET = "movielover_unsigned"; // must match the preset name you create in Cloudinary Dashboard (Signing Mode: Unsigned)
+const UPLOAD_PRESET = "movie_lover"; // ✅ আপনার Cloudinary Dashboard-এর আসল preset নাম
 
 const CLOUDINARY_IMAGE_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 const CLOUDINARY_VIDEO_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
@@ -303,6 +306,8 @@ function uploadToCloudinary(file,type){
 
   progWrap.style.display='block';
   progFill.style.width='0%';
+  // 🔧 reset আগের এরর কালার (যদি আগেরবার fail হয়ে থাকে)
+  progFill.style.background='linear-gradient(90deg,var(--red),var(--gold))';
   progTxt.innerText='Uploading...';
   progPct.innerText='0%';
 
@@ -318,6 +323,10 @@ function uploadToCloudinary(file,type){
       const pct = Math.round((evt.loaded/evt.total)*100);
       progFill.style.width = pct+'%';
       progPct.innerText = pct+'%';
+      // 🔧 আপলোড ১০০% মানেই ফাইল ট্রান্সফার শেষ — কিন্তু ভিডিওর ক্ষেত্রে
+      //     Cloudinary সার্ভার-সাইডে প্রসেস করতে আরও কিছুটা সময় নেয়।
+      //     তাই ১০০%-এর পর "Processing..." দেখাচ্ছি যাতে বোঝা যায় এটা আটকায়নি।
+      if(pct>=100){ progTxt.innerText = isImage ? 'Finalizing...' : 'Processing on Cloudinary...'; }
     }
   };
 
