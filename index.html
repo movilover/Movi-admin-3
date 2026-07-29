@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel V3 — Video Upload System | Movie Lover</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+:root{
+  --red:#e50000;--red2:#b30000;--gold:#ffc107;--gold2:#e6a800;
+  --bg0:#020202;--bg1:#080808;--bg2:#101010;--bg3:#161616;--bg4:#1c1c1c;
+  --border:#1e1e1e;--t1:#fff;--t2:#aaa;--t3:#555;
+  --green:#16a34a;--blue:#0088cc;--purple:#7c3aed;--orange:#ea580c;--cyan:#06b6d4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:var(--bg0);color:var(--t1);min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#222;border-radius:4px}
+
+#loginPage{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1a0000 0%,#000 70%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.lb{background:var(--bg2);border:1px solid rgba(229,0,0,.3);border-radius:24px;padding:36px 28px;width:90%;max-width:360px;text-align:center;box-shadow:0 0 60px rgba(229,0,0,.08)}
+.lb-logo{font-size:20px;font-weight:900;letter-spacing:2px;margin-bottom:6px}.lb-logo span{color:var(--red)}.lb-logo sup{font-size:7px;background:var(--gold);color:#000;padding:1px 5px;border-radius:5px;vertical-align:super;margin-left:2px;font-weight:800}
+.lb-sub{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:2px;margin-bottom:26px}
+.lb-inp{width:100%;padding:13px 16px;border-radius:12px;background:var(--bg1);border:1px solid var(--border);color:#fff;font-size:14px;text-align:center;letter-spacing:4px;outline:none;font-family:'Poppins',sans-serif;margin-bottom:12px}
+.lb-inp:focus{border-color:var(--red)}
+.lb-err{font-size:11px;color:var(--red);margin-bottom:10px;min-height:16px}
+.lb-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--red),var(--red2));color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:'Poppins',sans-serif}
+.lb-btn:active{transform:scale(.97)}
+.lb-attempts{font-size:10px;color:var(--t3);margin-top:10px;min-height:14px}
+
+#adminPage{display:none}
+.topbar{background:rgba(2,2,2,.97);backdrop-filter:blur(18px);padding:0 18px;height:54px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:500}
+.tbl{font-size:13px;font-weight:900;letter-spacing:1px}.tbl span{color:var(--red)}.tbl sup{font-size:7px;background:var(--gold);color:#000;padding:1px 5px;border-radius:5px;vertical-align:super;margin-left:2px;font-weight:800}
+.logout{padding:7px 14px;background:rgba(229,0,0,.1);border:1px solid rgba(229,0,0,.25);color:var(--red);border-radius:9px;cursor:pointer;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif}
+
+.navtabs{display:flex;overflow-x:auto;scrollbar-width:none;background:var(--bg1);border-bottom:1px solid var(--border);padding:0 4px}
+.navtabs::-webkit-scrollbar{display:none}
+.ntab{padding:12px 13px;font-size:10px;font-weight:700;color:var(--t3);white-space:nowrap;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:5px;flex-shrink:0;text-transform:uppercase;letter-spacing:.5px}
+.ntab.on{color:var(--red);border-bottom-color:var(--red)}.ntab i{font-size:11px}
+
+.content{padding:14px;max-width:820px;margin:0 auto}
+.tp{display:none}.tp.on{display:block}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+.ct{font-size:13px;font-weight:800;color:var(--red);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}.ct i{margin-right:5px}
+
+.inp{width:100%;padding:11px 14px;border-radius:11px;background:var(--bg1);border:1px solid var(--border);color:#fff;font-size:12px;outline:none;font-family:'Poppins',sans-serif;margin-bottom:9px}
+.inp:focus{border-color:var(--red)}
+select.inp option{background:var(--bg1)}textarea.inp{resize:vertical;min-height:70px}
+.btn{width:100%;padding:12px 16px;border-radius:11px;border:none;font-weight:800;font-size:11px;cursor:pointer;font-family:'Poppins',sans-serif;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px}
+.btn:active{transform:scale(.97);opacity:.88}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-red{background:linear-gradient(90deg,var(--red),var(--red2));color:#fff}
+.btn-green{background:linear-gradient(90deg,var(--green),#0e7a35);color:#fff}
+.btn-blue{background:linear-gradient(90deg,var(--blue),#005fa0);color:#fff}
+.btn-gold{background:linear-gradient(90deg,var(--gold),var(--gold2));color:#000}
+.btn-gray{background:var(--bg4);color:var(--t2);border:1px solid var(--border)}
+.btn-purple{background:linear-gradient(90deg,var(--purple),#5b21b6);color:#fff}
+.btn-cyan{background:linear-gradient(90deg,var(--cyan),#0e7490);color:#fff}
+.btn-sm{width:auto;padding:8px 13px;margin-top:0;font-size:9px;border-radius:8px}
+.slbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:4px;display:block}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+@media(max-width:560px){.two-col{grid-template-columns:1fr}}
+.info-box{background:rgba(255,193,7,.06);border:1px solid rgba(255,193,7,.2);border-radius:11px;padding:11px 14px;font-size:10px;color:#cca300;line-height:1.7;margin-bottom:10px}
+.info-box-blue{background:rgba(0,136,204,.06);border:1px solid rgba(0,136,204,.2);border-radius:11px;padding:11px 14px;font-size:10px;color:#38bdf8;line-height:1.7;margin-bottom:10px}
+.info-box-purple{background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.25);border-radius:11px;padding:11px 14px;font-size:10px;color:#c4b5fd;line-height:1.7;margin-bottom:10px}
+.info-box-green{background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.25);border-radius:11px;padding:11px 14px;font-size:10px;color:#4ade80;line-height:1.7;margin-bottom:10px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.empty{text-align:center;padding:30px;color:var(--t3);font-size:12px}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}.tog-row:last-child{border:none}
+.tog-lbl{font-size:12px;color:var(--t2)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}.toggle input{display:none}
+.tog-track{position:absolute;inset:0;border-radius:12px;background:var(--bg4);cursor:pointer;transition:.3s;border:1px solid var(--border)}
+.toggle input:checked+.tog-track{background:var(--red);border-color:var(--red)}
+.tog-track::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.3s}
+.toggle input:checked+.tog-track::after{left:22px}
+
+.cld-status{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:11px;font-size:11px;font-weight:700;margin-bottom:12px}
+.cld-ok{background:rgba(22,163,74,.1);color:#4ade80;border:1px solid rgba(22,163,74,.25)}
+.cld-bad{background:rgba(229,0,0,.1);color:var(--red);border:1px solid rgba(229,0,0,.25)}
+
+.thumb-preview-wrap{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.thumb-preview{width:110px;height:70px;object-fit:cover;border-radius:10px;background:var(--bg3);border:1px solid var(--border);flex-shrink:0}
+.upload-btn-wrap{flex:1;display:flex;flex-direction:column;gap:6px}
+.file-hidden{display:none}
+
+.parts-container{background:var(--bg3);border:1px solid var(--border);border-radius:13px;padding:12px;margin-bottom:9px}
+.part-row{background:var(--bg4);border-radius:11px;padding:12px;border:1px solid var(--border);margin-bottom:9px}
+.part-row:last-child{margin-bottom:0}
+.part-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.part-num{width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.part-label-inp{flex:1;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:#fff;font-size:11px;outline:none;font-family:'Poppins',sans-serif}
+.part-link-inp{width:100%;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:10px;outline:none;font-family:'Fira Code',monospace;margin-bottom:8px}
+.part-actions{display:flex;gap:7px;align-items:center}
+.part-remove{background:rgba(229,0,0,.15);border:1px solid rgba(229,0,0,.3);color:var(--red);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:11px;flex-shrink:0}
+
+.upload-progress-wrap{display:none;margin-top:8px}
+.upload-progress-wrap.show{display:block}
+.upload-progress-bar-bg{width:100%;height:8px;background:var(--bg1);border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.upload-progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:6px;transition:width .2s}
+.upload-progress-txt{font-size:9px;color:var(--t2);margin-top:5px;display:flex;justify-content:space-between}
+
+.li{background:var(--bg3);border:1px solid var(--border);border-radius:13px;padding:12px 13px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.thumb{width:58px;height:38px;object-fit:cover;border-radius:7px;flex-shrink:0;border:1px solid var(--border)}
+.ii{flex:1;overflow:hidden}.it{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.is{font-size:9px;color:var(--t3);margin-top:2px}.handle{cursor:grab;color:var(--t3);font-size:14px;flex-shrink:0}
+.act{display:flex;gap:5px;flex-shrink:0}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;align-items:center;gap:10px}
+.sc-ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sc-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:3px}
+.sc-val{font-size:20px;font-weight:900;color:#fff;line-height:1}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(18px);background:rgba(18,18,18,.97);color:#fff;padding:9px 22px;border-radius:22px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:.28s;white-space:nowrap;border:1px solid rgba(255,255,255,.09);pointer-events:none;max-width:90%;text-overflow:ellipsis;overflow:hidden}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginPage">
+  <div class="lb">
+    <div class="lb-logo">MOVIE<span>LOVER</span><sup>ADMIN V3</sup></div>
+    <div class="lb-sub">Video Upload Control Panel</div>
+    <input type="password" class="lb-inp" id="pinInp" placeholder="● ● ● ● ●" autocomplete="off" maxlength="12">
+    <div class="lb-err" id="loginErr"></div>
+    <button class="lb-btn" onclick="doLogin()"><i class="fa fa-shield-alt"></i>&nbsp; Secure Login</button>
+    <div class="lb-attempts" id="attemptsMsg"></div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="adminPage">
+  <div class="topbar">
+    <div class="tbl">MOVIE<span>LOVER</span><sup>V3</sup></div>
+    <button class="logout" onclick="doLogout()"><i class="fa fa-sign-out-alt"></i> Logout</button>
+  </div>
+
+  <div class="navtabs">
+    <div class="ntab on" data-tab="dashboard"><i class="fa fa-tachometer-alt"></i> Dashboard</div>
+    <div class="ntab" data-tab="cloudinary"><i class="fa fa-cloud"></i> Cloudinary Setup</div>
+    <div class="ntab" data-tab="upload"><i class="fa fa-cloud-upload-alt"></i> Video Upload</div>
+    <div class="ntab" data-tab="videolist"><i class="fa fa-film"></i> Video List</div>
+    <div class="ntab" data-tab="categories"><i class="fa fa-folder"></i> Categories</div>
+    <div class="ntab" data-tab="settings"><i class="fa fa-cog"></i> Settings</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="tp on" id="tab-dashboard">
+      <div class="stats-grid">
+        <div class="sc"><div class="sc-ic" style="background:rgba(229,0,0,.1);color:var(--red)"><i class="fa fa-film"></i></div><div><span class="sc-lbl">Total Videos</span><div class="sc-val" id="s-videos">—</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:rgba(255,193,7,.1);color:var(--gold)"><i class="fa fa-crown"></i></div><div><span class="sc-lbl">Premium Videos</span><div class="sc-val" id="s-prem">—</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:rgba(0,136,204,.1);color:#38bdf8"><i class="fa fa-eye"></i></div><div><span class="sc-lbl">Total Views</span><div class="sc-val" id="s-views">—</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:rgba(124,58,237,.1);color:#c4b5fd"><i class="fa fa-folder"></i></div><div><span class="sc-lbl">Categories</span><div class="sc-val" id="s-cats">—</div></div></div>
+      </div>
+      <div class="card" id="dashCldCard">
+        <div class="ct"><i class="fa fa-cloud"></i> Cloudinary Status</div>
+        <div id="dashCldStatus"><div class="empty">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="ct"><i class="fa fa-film"></i> সাম্প্রতিক ভিডিও</div>
+        <div id="dashRecentVideos"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ CLOUDINARY SETUP ══ -->
+    <div class="tp" id="tab-cloudinary">
+      <div class="card" style="border-color:rgba(6,182,212,.35)">
+        <div class="ct"><i class="fa fa-cloud"></i> Cloudinary API Setup</div>
+        <div class="info-box-blue">
+          ☁️ এখানে আপনার Cloudinary অ্যাকাউন্টের তথ্য বসিয়ে Save করলেই এই সাইটের সাথে Cloudinary যুক্ত হয়ে যাবে। এরপর "Video Upload" ট্যাব থেকে গ্যালারি থেকে সরাসরি ভিডিও/থাম্বনেইল আপলোড করা যাবে।<br><br>
+          <b>যেভাবে তথ্য পাবেন:</b><br>
+          ১) Cloudinary Dashboard-এ লগইন করুন<br>
+          ২) উপরে <b>"Cloud Name"</b> দেখতে পাবেন — সেটা কপি করে নিচে বসান<br>
+          ৩) Settings ⚙️ → Upload → "Upload presets" → <b>Add upload preset</b><br>
+          ৪) Signing Mode অবশ্যই <b>Unsigned</b> সিলেক্ট করুন, তারপর Save করুন<br>
+          ৫) প্রিসেটের নামটা কপি করে নিচে বসান
+        </div>
+        <div id="cldStatusBox"></div>
+        <label class="slbl">Cloud Name *</label>
+        <input class="inp" id="cldCloudName" placeholder="যেমন: dxxxxxx123">
+        <label class="slbl">Unsigned Upload Preset *</label>
+        <input class="inp" id="cldUploadPreset" placeholder="যেমন: movielover_unsigned">
+        <label class="slbl">Folder (ঐচ্ছিক)</label>
+        <input class="inp" id="cldFolder" placeholder="যেমন: movielover_videos">
+        <button class="btn btn-cyan" onclick="saveCloudinaryConfig()"><i class="fa fa-save"></i> Cloudinary সংরক্ষণ করুন</button>
+        <button class="btn btn-gray" onclick="testCloudinaryConfig()"><i class="fa fa-vial"></i> সংযোগ পরীক্ষা করুন</button>
+      </div>
+    </div>
+
+    <!-- ══ VIDEO UPLOAD ══ -->
+    <div class="tp" id="tab-upload">
+      <div class="card" id="videoFormCard">
+        <div class="ct" id="vFormTitle"><span><i class="fa fa-upload"></i> নতুন ভিডিও আপলোড</span></div>
+        <div id="uploadCldWarning"></div>
+
+        <label class="slbl">ভিডিও শিরোনাম *</label>
+        <input class="inp" id="vTitle" placeholder="Video Title লিখুন">
+
+        <label class="slbl">বিবরণ (ঐচ্ছিক)</label>
+        <textarea class="inp" id="vDesc" placeholder="ভিডিওর বিস্তারিত বিবরণ..."></textarea>
+
+        <div class="two-col">
+          <div>
+            <label class="slbl">ক্যাটাগরি</label>
+            <select class="inp" id="vCat" style="margin-bottom:0"></select>
+          </div>
+          <div>
+            <label class="slbl">প্রিমিয়াম কন্টেন্ট?</label>
+            <div class="tog-row" style="border:none;padding:11px 14px;background:var(--bg1);border-radius:11px">
+              <span class="tog-lbl">Premium</span>
+              <label class="toggle"><input type="checkbox" id="vPremium"><div class="tog-track"></div></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <label class="slbl">থাম্বনেইল ছবি</label>
+        <div class="thumb-preview-wrap">
+          <img id="thumbPreviewImg" class="thumb-preview" src="" style="display:none">
+          <div id="thumbPreviewPlaceholder" class="thumb-preview" style="display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:18px"><i class="fa fa-image"></i></div>
+          <div class="upload-btn-wrap">
+            <input class="inp" id="vThumb" placeholder="থাম্বনেইল URL (অটো বসবে)" style="margin-bottom:0" oninput="onThumbUrlChange()">
+            <button class="btn btn-purple btn-sm" style="width:100%" onclick="document.getElementById('thumbFileInp').click()"><i class="fa fa-images"></i> গ্যালারি থেকে থাম্বনেইল আপলোড</button>
+            <input type="file" id="thumbFileInp" class="file-hidden" accept="image/*" onchange="handleThumbFileSelect(event)">
+          </div>
+        </div>
+        <div class="upload-progress-wrap" id="thumbProgressWrap">
+          <div class="upload-progress-bar-bg"><div class="upload-progress-bar-fill" id="thumbProgressFill"></div></div>
+          <div class="upload-progress-txt"><span id="thumbProgressTxt">আপলোড হচ্ছে...</span><span id="thumbProgressPct">0%</span></div>
+        </div>
+
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:12px;font-weight:700;color:#fff"><i class="fa fa-layer-group" style="color:var(--blue);margin-right:6px"></i> ভিডিও Part সমূহ</span>
+          <button class="btn btn-blue btn-sm" onclick="addVideoPart()"><i class="fa fa-plus"></i> নতুন Part যোগ করুন</button>
+        </div>
+        <div class="info-box-purple" style="font-size:9px">
+          📌 একটা ভিডিওর একাধিক Part থাকলে প্রতিটার জন্য আলাদা Part যোগ করুন। প্রতিটা Part-এ "গ্যালারি থেকে ভিডিও আপলোড" বাটনে ক্লিক করলে ফোনের গ্যালারি খুলবে — ভিডিও সিলেক্ট করলেই বড় ফাইল (২৫-৩০ মিনিট বা তার বেশি) হলেও ধাপে ধাপে (chunked) আপলোড হয়ে লিংক অটো বসে যাবে। শুধু ১টা Part থাকলে সেটাই মূল ভিডিও হিসেবে সেভ হবে।
+        </div>
+        <div id="videoPartsContainer"></div>
+
+        <button class="btn btn-green" id="vSaveBtn" onclick="doSaveVideo()"><i class="fa fa-cloud-upload-alt"></i> ভিডিও Save করুন</button>
+        <button class="btn btn-gray" id="vCancelBtn" onclick="resetVForm()" style="display:none"><i class="fa fa-times"></i> Cancel Edit</button>
+      </div>
+    </div>
+
+    <!-- ══ VIDEO LIST ══ -->
+    <div class="tp" id="tab-videolist">
+      <div class="card">
+        <div class="ct"><span><i class="fa fa-film"></i> সকল ভিডিও</span><button class="btn btn-gray btn-sm" onclick="saveVideoOrder()"><i class="fa fa-save"></i> Order Save</button></div>
+        <div class="sr" style="margin-bottom:12px"><input class="inp" id="videoSearchInp" placeholder="ভিডিও সার্চ করুন..." oninput="renderVideoList(this.value)" style="margin-bottom:0"></div>
+        <div id="videoList"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ CATEGORIES ══ -->
+    <div class="tp" id="tab-categories">
+      <div class="card">
+        <div class="ct"><span><i class="fa fa-list"></i> ক্যাটাগরি ম্যানেজমেন্ট</span><button class="btn btn-gray btn-sm" onclick="saveCatOrder()"><i class="fa fa-save"></i> Order Save</button></div>
+        <input class="inp" id="catInp" placeholder="ক্যাটাগরির নাম">
+        <button class="btn btn-gold" id="catSaveBtn" onclick="doSaveCat()"><i class="fa fa-plus"></i> Add Category</button>
+        <button class="btn btn-gray" id="catCancelBtn" onclick="resetCatForm()" style="display:none"><i class="fa fa-times"></i> Cancel</button>
+        <div id="catList" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="tp" id="tab-settings">
+      <div class="card">
+        <div class="ct"><i class="fa fa-shield-alt"></i> Security Settings</div>
+        <div class="info-box">⚠️ Admin PIN পরিবর্তন করুন। কমপক্ষে ৪ সংখ্যা ব্যবহার করুন।</div>
+        <label class="slbl">নতুন Admin PIN</label>
+        <input class="inp" id="newPinInp" type="password" placeholder="নতুন PIN" maxlength="12">
+        <label class="slbl">PIN নিশ্চিত করুন</label>
+        <input class="inp" id="confirmPinInp" type="password" placeholder="আবার PIN" maxlength="12">
+        <button class="btn btn-red" onclick="changeAdminPin()"><i class="fa fa-lock"></i> PIN পরিবর্তন করুন</button>
+      </div>
+      <div class="card">
+        <div class="ct"><i class="fa fa-user-shield"></i> Owner তথ্য</div>
+        <label class="slbl">Owner Gmail</label>
+        <input class="inp" id="ownerEmailInp" placeholder="you@gmail.com">
+        <button class="btn btn-blue" onclick="saveOwnerEmail()"><i class="fa fa-save"></i> সংরক্ষণ করুন</button>
+        <div class="info-box-blue" style="margin-top:10px">ℹ️ এই ইমেইলটি শুধু রেফারেন্স হিসেবে সংরক্ষিত থাকবে (অ্যাকাউন্টের মালিক কে তা মনে রাখার জন্য)। লগইন এখনো শুধুমাত্র PIN দিয়েই হবে।</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,.3)">
+        <div class="ct"><i class="fa fa-cloud"></i> Cloudinary (শর্টকাট)</div>
+        <div id="settingsCldSummary"><div class="empty">Loading...</div></div>
+        <button class="btn btn-cyan" onclick="switchTab('cloudinary')"><i class="fa fa-cog"></i> Cloudinary Setup-এ যান</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  FIREBASE INIT (একই সাইটের ডেটাবেজ ব্যবহার হচ্ছে)
+// ════════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyBPEvyz0GVGUGvF2K0H3e2Dx4Qw_WCYjFU",
+  authDomain:"movi-lover-video.firebaseapp.com",
+  projectId:"movi-lover-video",
+  databaseURL:"https://movi-lover-video-default-rtdb.firebaseio.com",
+  storageBucket:"movi-lover-video.appspot.com",
+  appId:"1:1063457095926:web:4695d26c35e8b603326cd7"
+});
+const db = firebase.database();
+
+// ════════════════════════════════════════════════
+//  ANTI-BRUTE-FORCE LOGIN
+// ════════════════════════════════════════════════
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS   = 5 * 60 * 1000;
+let loginAttempts  = parseInt(localStorage.getItem('adminV3Attempts') || '0');
+let lockoutUntil   = parseInt(localStorage.getItem('adminV3Lockout')  || '0');
+const DEFAULT_PIN  = '53781';
+const OWNER_EMAIL_DEFAULT = 'omor.faruk.sojol.2@gmail.com';
+
+function checkLocked(){
+  if(Date.now() < lockoutUntil){
+    const rem = Math.ceil((lockoutUntil - Date.now()) / 1000);
+    document.getElementById('attemptsMsg').innerText = `🔒 ${rem}s অপেক্ষা করুন`;
+    return true;
+  }
+  if(Date.now() >= lockoutUntil && lockoutUntil > 0){
+    loginAttempts = 0;
+    localStorage.removeItem('adminV3Attempts');
+    localStorage.removeItem('adminV3Lockout');
+    lockoutUntil = 0;
+    document.getElementById('attemptsMsg').innerText = '';
+  }
+  const rem = MAX_ATTEMPTS - loginAttempts;
+  if(rem < MAX_ATTEMPTS) document.getElementById('attemptsMsg').innerText = `⚠️ ${rem} attempt বাকি`;
+  return false;
+}
+setInterval(()=>{if(Date.now()<lockoutUntil)checkLocked();},1000);
+
+function doLogin(){
+  if(checkLocked()) return;
+  const entered = document.getElementById('pinInp').value.trim();
+  if(!entered){ showLoginErr('PIN লিখুন!'); return; }
+
+  db.ref('adminPinV3').once('value', snap => {
+    let stored = snap.val();
+    if(!stored){
+      if(entered === DEFAULT_PIN){
+        db.ref('adminPinV3').set(DEFAULT_PIN);
+        if(!snap) {}
+        db.ref('ownerEmail').once('value',es=>{ if(!es.val()) db.ref('ownerEmail').set(OWNER_EMAIL_DEFAULT); });
+        clearAttempts();
+        proceedToAdmin();
+      } else {
+        handleWrongPin();
+      }
+      return;
+    }
+    if(entered === stored){
+      clearAttempts();
+      proceedToAdmin();
+    } else {
+      handleWrongPin();
+    }
+  }).catch(()=>showLoginErr('❌ Firebase connection error!'));
+}
+
+function handleWrongPin(){
+  loginAttempts++;
+  localStorage.setItem('adminV3Attempts', loginAttempts);
+  if(loginAttempts >= MAX_ATTEMPTS){
+    lockoutUntil = Date.now() + LOCKOUT_MS;
+    localStorage.setItem('adminV3Lockout', lockoutUntil);
+    showLoginErr(`🔒 ${MAX_ATTEMPTS} বার ভুল! ৫ মিনিট লক।`);
+  } else {
+    showLoginErr(`❌ ভুল PIN! (${MAX_ATTEMPTS - loginAttempts} attempt বাকি)`);
+  }
+  document.getElementById('pinInp').value='';
+  checkLocked();
+}
+function clearAttempts(){loginAttempts=0;localStorage.removeItem('adminV3Attempts');localStorage.removeItem('adminV3Lockout');lockoutUntil=0;}
+function showLoginErr(msg){document.getElementById('loginErr').innerText=msg;document.getElementById('pinInp').style.borderColor='#e50000';setTimeout(()=>{document.getElementById('pinInp').style.borderColor='';},3000);}
+function proceedToAdmin(){document.getElementById('loginPage').style.display='none';document.getElementById('adminPage').style.display='block';initAdmin();}
+function doLogout(){document.getElementById('adminPage').style.display='none';document.getElementById('loginPage').style.display='flex';document.getElementById('pinInp').value='';}
+function changeAdminPin(){
+  const np=document.getElementById('newPinInp').value.trim();
+  const cp=document.getElementById('confirmPinInp').value.trim();
+  if(!np||np.length<4){toast('❌ কমপক্ষে ৪ সংখ্যা দিন!');return;}
+  if(np!==cp){toast('❌ PIN মিলছে না!');return;}
+  db.ref('adminPinV3').set(np).then(()=>{
+    toast('✅ PIN পরিবর্তন হয়েছে!');
+    document.getElementById('newPinInp').value='';
+    document.getElementById('confirmPinInp').value='';
+  });
+}
+function saveOwnerEmail(){
+  const em=document.getElementById('ownerEmailInp').value.trim();
+  if(!em){toast('❌ ইমেইল দিন!');return;}
+  db.ref('ownerEmail').set(em).then(()=>toast('✅ Owner ইমেইল সংরক্ষিত!'));
+}
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let movies=[],categories=[],cldConfig={cloudName:'',uploadPreset:'',folder:''};
+let editVKey=null,editCatIdx=null;
+let videoParts=[];
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+function initAdmin(){
+  document.querySelectorAll('.ntab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+  db.ref('/').on('value',snap=>{
+    const d=snap.val()||{};
+    const vm=d.movies||{};
+    movies=Object.keys(vm).map(k=>({...vm[k],key:k}));
+    if(d.movieOrder)movies.sort((a,b)=>(d.movieOrder.indexOf(a.key)||0)-(d.movieOrder.indexOf(b.key)||0));
+    else movies.reverse();
+    categories=d.categories||[];
+    cldConfig=d.cloudinaryConfig||{cloudName:'',uploadPreset:'',folder:''};
+
+    setv('cldCloudName',cldConfig.cloudName||'');
+    setv('cldUploadPreset',cldConfig.uploadPreset||'');
+    setv('cldFolder',cldConfig.folder||'');
+    setv('ownerEmailInp',d.ownerEmail||OWNER_EMAIL_DEFAULT);
+
+    renderCldStatusBox();
+    updateStats(d);
+    const active=document.querySelector('.tp.on')?.id?.replace('tab-','');
+    if(active) renderTab(active);
+  });
+}
+
+function switchTab(name){
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));
+  document.querySelector(`[data-tab="${name}"]`)?.classList.add('on');
+  document.getElementById('tab-'+name)?.classList.add('on');
+  renderTab(name);
+}
+
+function renderTab(name){
+  if(name==='dashboard'){renderDashCldStatus();renderDashRecentVideos();}
+  if(name==='cloudinary')renderCldStatusBox();
+  if(name==='upload'){renderUploadWarning();document.getElementById('vCat').innerHTML=categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');}
+  if(name==='videolist')renderVideoList('');
+  if(name==='categories')renderCats();
+  if(name==='settings')renderSettingsCldSummary();
+}
+
+function updateStats(d){
+  document.getElementById('s-videos').innerText=movies.length;
+  document.getElementById('s-prem').innerText=movies.filter(m=>m.premiumContent).length;
+  document.getElementById('s-views').innerText=movies.reduce((s,m)=>s+(m.views||0),0);
+  document.getElementById('s-cats').innerText=categories.length;
+}
+
+// ════════════════════════════════════════════════
+//  CLOUDINARY CONFIG
+// ════════════════════════════════════════════════
+function isCldReady(){return !!(cldConfig.cloudName && cldConfig.uploadPreset);}
+
+function saveCloudinaryConfig(){
+  const cloudName=document.getElementById('cldCloudName').value.trim();
+  const uploadPreset=document.getElementById('cldUploadPreset').value.trim();
+  const folder=document.getElementById('cldFolder').value.trim();
+  if(!cloudName||!uploadPreset){toast('❌ Cloud Name ও Upload Preset দুটোই দিতে হবে!');return;}
+  db.ref('cloudinaryConfig').set({cloudName,uploadPreset,folder,updatedAt:Date.now()}).then(()=>{
+    toast('✅ Cloudinary সংরক্ষণ হয়েছে! এখন ভিডিও আপলোড করতে পারবেন।');
+  });
+}
+
+async function testCloudinaryConfig(){
+  const cloudName=document.getElementById('cldCloudName').value.trim();
+  const uploadPreset=document.getElementById('cldUploadPreset').value.trim();
+  if(!cloudName||!uploadPreset){toast('❌ আগে Cloud Name ও Upload Preset বসান!');return;}
+  toast('🔄 পরীক্ষা করা হচ্ছে...');
+  try{
+    // ১x১ pixel transparent PNG দিয়ে টেস্ট আপলোড
+    const testBlob = await (await fetch('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')).blob();
+    const fd=new FormData();
+    fd.append('file',testBlob,'test.png');
+    fd.append('upload_preset',uploadPreset);
+    const r=await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,{method:'POST',body:fd});
+    const data=await r.json();
+    if(data.secure_url){toast('✅ সংযোগ সফল! Cloudinary ঠিকমতো কাজ করছে।');}
+    else{toast('❌ সংযোগ ব্যর্থ: '+(data.error?.message||'Unknown error'));}
+  }catch(e){toast('❌ সংযোগ ব্যর্থ: '+e.message);}
+}
+
+function renderCldStatusBox(){
+  const box=document.getElementById('cldStatusBox');if(!box)return;
+  if(isCldReady()){
+    box.innerHTML=`<div class="cld-status cld-ok"><i class="fa fa-check-circle"></i> Cloudinary কনফিগার করা আছে — Cloud: <b>${esc(cldConfig.cloudName)}</b>, Preset: <b>${esc(cldConfig.uploadPreset)}</b></div>`;
+  }else{
+    box.innerHTML=`<div class="cld-status cld-bad"><i class="fa fa-exclamation-triangle"></i> এখনো Cloudinary সেটআপ করা হয়নি। নিচের তথ্য দিয়ে Save করুন।</div>`;
+  }
+}
+function renderDashCldStatus(){
+  const el=document.getElementById('dashCldStatus');if(!el)return;
+  if(isCldReady()){
+    el.innerHTML=`<div class="cld-status cld-ok"><i class="fa fa-check-circle"></i> সংযুক্ত — ${esc(cldConfig.cloudName)}</div>`;
+  }else{
+    el.innerHTML=`<div class="cld-status cld-bad"><i class="fa fa-exclamation-triangle"></i> সংযুক্ত নেই</div><button class="btn btn-cyan" onclick="switchTab('cloudinary')"><i class="fa fa-cog"></i> এখনই সেটআপ করুন</button>`;
+  }
+}
+function renderSettingsCldSummary(){
+  const el=document.getElementById('settingsCldSummary');if(!el)return;
+  if(isCldReady()){
+    el.innerHTML=`<div class="cld-status cld-ok"><i class="fa fa-check-circle"></i> Cloud: ${esc(cldConfig.cloudName)} | Preset: ${esc(cldConfig.uploadPreset)}</div>`;
+  }else{
+    el.innerHTML=`<div class="cld-status cld-bad"><i class="fa fa-exclamation-triangle"></i> এখনো কনফিগার করা হয়নি</div>`;
+  }
+}
+function renderUploadWarning(){
+  const el=document.getElementById('uploadCldWarning');if(!el)return;
+  if(!isCldReady()){
+    el.innerHTML=`<div class="info-box" style="color:#ff8a8a;background:rgba(229,0,0,.08);border-color:rgba(229,0,0,.25)">⚠️ Cloudinary এখনো সেটআপ করা হয়নি। আপলোড করার আগে <b onclick="switchTab('cloudinary')" style="cursor:pointer;text-decoration:underline">Cloudinary Setup ট্যাব</b>-এ গিয়ে Cloud Name ও Upload Preset বসিয়ে Save করুন।</div>`;
+  }else{
+    el.innerHTML='';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  CLOUDINARY UPLOAD ENGINE (chunked — বড় ভিডিওর জন্য)
+// ════════════════════════════════════════════════
+const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB per chunk
+
+function uploadToCloudinary(file, resourceType, onProgress){
+  return new Promise((resolve,reject)=>{
+    if(!isCldReady()){reject(new Error('Cloudinary সেটআপ করা হয়নি')); return;}
+    if(resourceType==='video' && file.size > CHUNK_SIZE){
+      chunkedUpload(file, onProgress).then(resolve).catch(reject);
+    } else {
+      simpleUpload(file, resourceType, onProgress).then(resolve).catch(reject);
+    }
+  });
+}
+
+function simpleUpload(file, resourceType, onProgress){
+  return new Promise((resolve,reject)=>{
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('upload_preset',cldConfig.uploadPreset);
+    if(cldConfig.folder) fd.append('folder',cldConfig.folder);
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST',`https://api.cloudinary.com/v1_1/${cldConfig.cloudName}/${resourceType}/upload`);
+    xhr.upload.onprogress=(e)=>{if(e.lengthComputable && onProgress)onProgress((e.loaded/e.total)*100);};
+    xhr.onload=()=>{
+      try{
+        const res=JSON.parse(xhr.responseText);
+        if(xhr.status>=200 && xhr.status<300 && res.secure_url){onProgress&&onProgress(100);resolve(res);}
+        else reject(new Error(res.error?.message||'আপলোড ব্যর্থ হয়েছে'));
+      }catch(e){reject(e);}
+    };
+    xhr.onerror=()=>reject(new Error('নেটওয়ার্ক সমস্যা হয়েছে'));
+    xhr.send(fd);
+  });
+}
+
+function chunkedUpload(file, onProgress){
+  return new Promise((resolve,reject)=>{
+    const uploadId='mlv-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);
+    const totalSize=file.size;
+    let start=0;
+
+    function uploadNextChunk(){
+      const end=Math.min(start+CHUNK_SIZE,totalSize);
+      const chunk=file.slice(start,end);
+      const fd=new FormData();
+      fd.append('file',chunk);
+      fd.append('upload_preset',cldConfig.uploadPreset);
+      if(cldConfig.folder) fd.append('folder',cldConfig.folder);
+
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST',`https://api.cloudinary.com/v1_1/${cldConfig.cloudName}/video/upload`);
+      xhr.setRequestHeader('X-Unique-Upload-Id',uploadId);
+      xhr.setRequestHeader('Content-Range',`bytes ${start}-${end-1}/${totalSize}`);
+
+      xhr.upload.onprogress=(e)=>{
+        if(onProgress && e.lengthComputable){
+          const doneBytes=start+e.loaded;
+          onProgress(Math.min((doneBytes/totalSize)*100,99.5));
+        }
+      };
+      xhr.onload=()=>{
+        if(xhr.status>=200 && xhr.status<300){
+          start=end;
+          if(start<totalSize){
+            uploadNextChunk();
+          }else{
+            try{
+              const res=JSON.parse(xhr.responseText);
+              onProgress&&onProgress(100);
+              resolve(res);
+            }catch(e){reject(e);}
+          }
+        }else{
+          let msg='আপলোড ব্যর্থ';
+          try{msg=JSON.parse(xhr.responseText).error?.message||msg;}catch(e){}
+          reject(new Error(msg+' (status '+xhr.status+')'));
+        }
+      };
+      xhr.onerror=()=>reject(new Error('নেটওয়ার্ক সমস্যা হয়েছে — আবার চেষ্টা করুন'));
+      xhr.send(fd);
+    }
+    uploadNextChunk();
+  });
+}
+
+function fmtBytes(b){
+  if(b<1024)return b+' B';
+  if(b<1024*1024)return (b/1024).toFixed(1)+' KB';
+  return (b/(1024*1024)).toFixed(1)+' MB';
+}
+
+// ════════════════════════════════════════════════
+//  THUMBNAIL UPLOAD
+// ════════════════════════════════════════════════
+function onThumbUrlChange(){
+  const url=document.getElementById('vThumb').value.trim();
+  const img=document.getElementById('thumbPreviewImg');
+  const ph=document.getElementById('thumbPreviewPlaceholder');
+  if(url){img.src=url;img.style.display='block';ph.style.display='none';}
+  else{img.style.display='none';ph.style.display='flex';}
+}
+
+async function handleThumbFileSelect(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(!isCldReady()){toast('❌ প্রথমে Cloudinary সেটআপ করুন!');switchTab('cloudinary');return;}
+  const wrap=document.getElementById('thumbProgressWrap');
+  const fill=document.getElementById('thumbProgressFill');
+  const txt=document.getElementById('thumbProgressTxt');
+  const pct=document.getElementById('thumbProgressPct');
+  wrap.classList.add('show');
+  txt.innerText='থাম্বনেইল আপলোড হচ্ছে... ('+fmtBytes(file.size)+')';
+  fill.style.width='0%';pct.innerText='0%';
+  try{
+    const res=await uploadToCloudinary(file,'image',(p)=>{fill.style.width=p+'%';pct.innerText=Math.round(p)+'%';});
+    document.getElementById('vThumb').value=res.secure_url;
+    onThumbUrlChange();
+    txt.innerText='✅ আপলোড সম্পন্ন!';
+    toast('✅ থাম্বনেইল আপলোড হয়েছে!');
+    setTimeout(()=>wrap.classList.remove('show'),1800);
+  }catch(err){
+    txt.innerText='❌ ব্যর্থ: '+err.message;
+    toast('❌ থাম্বনেইল আপলোড ব্যর্থ: '+err.message);
+  }
+  e.target.value='';
+}
+
+// ════════════════════════════════════════════════
+//  MULTI-PART VIDEO UPLOAD
+// ════════════════════════════════════════════════
+function addVideoPart(){
+  videoParts.push({label:'Part '+(videoParts.length+1),link:'',uploading:false});
+  renderVideoParts();
+}
+function removeVideoPart(i){videoParts.splice(i,1);renderVideoParts();}
+
+function renderVideoParts(){
+  const wrap=document.getElementById('videoPartsContainer');
+  if(!videoParts.length){
+    wrap.innerHTML='<div class="empty" style="padding:16px">এখনো কোনো Part যোগ করা হয়নি। "নতুন Part যোগ করুন" বাটনে ক্লিক করুন।</div>';
+    return;
+  }
+  wrap.innerHTML=`<div class="parts-container">
+    ${videoParts.map((p,i)=>`
+      <div class="part-row" id="partRow${i}">
+        <div class="part-top">
+          <div class="part-num">${i+1}</div>
+          <input class="part-label-inp" placeholder="Part লেবেল" value="${esc(p.label||'Part '+(i+1))}" oninput="videoParts[${i}].label=this.value">
+          <button class="part-remove" onclick="removeVideoPart(${i})"><i class="fa fa-times"></i></button>
+        </div>
+        <input class="part-link-inp" id="partLink${i}" placeholder="ভিডিও লিংক (অটো বসবে)" value="${esc(p.link||'')}" oninput="videoParts[${i}].link=this.value">
+        <button class="btn btn-blue btn-sm" style="width:100%" onclick="document.getElementById('partFile${i}').click()"><i class="fa fa-video"></i> গ্যালারি থেকে Part ${i+1} ভিডিও আপলোড</button>
+        <input type="file" id="partFile${i}" class="file-hidden" accept="video/*" onchange="handlePartFileSelect(event,${i})">
+        <div class="upload-progress-wrap" id="partProgressWrap${i}">
+          <div class="upload-progress-bar-bg"><div class="upload-progress-bar-fill" id="partProgressFill${i}"></div></div>
+          <div class="upload-progress-txt"><span id="partProgressTxt${i}">আপলোড হচ্ছে...</span><span id="partProgressPct${i}">0%</span></div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function handlePartFileSelect(e,i){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(!isCldReady()){toast('❌ প্রথমে Cloudinary সেটআপ করুন!');switchTab('cloudinary');return;}
+  const wrap=document.getElementById('partProgressWrap'+i);
+  const fill=document.getElementById('partProgressFill'+i);
+  const txt=document.getElementById('partProgressTxt'+i);
+  const pct=document.getElementById('partProgressPct'+i);
+  wrap.classList.add('show');
+  videoParts[i].uploading=true;
+  txt.innerText='ভিডিও আপলোড হচ্ছে... ('+fmtBytes(file.size)+')';
+  fill.style.width='0%';pct.innerText='0%';
+  try{
+    const res=await uploadToCloudinary(file,'video',(p)=>{fill.style.width=p+'%';pct.innerText=Math.round(p)+'%';});
+    videoParts[i].link=res.secure_url;
+    videoParts[i].uploading=false;
+    const linkInp=document.getElementById('partLink'+i);
+    if(linkInp)linkInp.value=res.secure_url;
+    txt.innerText='✅ আপলোড সম্পন্ন! ('+(res.duration?Math.round(res.duration/60)+' মিনিট':'')+')';
+    toast('✅ Part '+(i+1)+' আপলোড হয়েছে!');
+    setTimeout(()=>wrap.classList.remove('show'),2500);
+  }catch(err){
+    videoParts[i].uploading=false;
+    txt.innerText='❌ ব্যর্থ: '+err.message;
+    toast('❌ Part '+(i+1)+' আপলোড ব্যর্থ: '+err.message);
+  }
+  e.target.value='';
+}
+
+// ════════════════════════════════════════════════
+//  VIDEO SAVE / EDIT / DELETE / LIST
+// ════════════════════════════════════════════════
+function doSaveVideo(){
+  const title=document.getElementById('vTitle').value.trim();
+  const link=videoParts.length ? (videoParts[0].link||'') : '';
+  if(!title){toast('❌ ভিডিও শিরোনাম দিন!');return;}
+  if(!videoParts.length || !videoParts.some(p=>p.link)){toast('❌ কমপক্ষে একটা Part-এ ভিডিও আপলোড/লিংক দিন!');return;}
+  if(videoParts.some(p=>p.uploading)){toast('⏳ আপলোড এখনো চলছে, অপেক্ষা করুন...');return;}
+
+  const v={
+    title,
+    desc:document.getElementById('vDesc').value.trim(),
+    category:document.getElementById('vCat').value,
+    premiumContent:document.getElementById('vPremium').checked,
+    thumb:document.getElementById('vThumb').value.trim(),
+    link,
+    parts:videoParts.filter(p=>p.link).map(p=>({label:p.label,link:p.link}))
+  };
+  if(!v.thumb){toast('❌ থাম্বনেইল দিন!');return;}
+
+  if(editVKey){
+    db.ref('movies/'+editVKey).update(v).then(()=>{toast('✅ ভিডিও আপডেট হয়েছে!');resetVForm();});
+  }else{
+    db.ref('movies').push({...v,views:0,createdAt:Date.now()}).then(()=>{toast('✅ ভিডিও আপলোড সম্পন্ন!');resetVForm();});
+  }
+}
+
+function editVideo(key){
+  const m=movies.find(x=>x.key===key);if(!m)return;
+  editVKey=key;
+  switchTab('upload');
+  setv('vTitle',m.title);setv('vDesc',m.desc||'');setv('vThumb',m.thumb||'');
+  onThumbUrlChange();
+  document.getElementById('vCat').value=m.category||'';
+  document.getElementById('vPremium').checked=m.premiumContent||false;
+  videoParts=(m.parts&&m.parts.length)?m.parts.map(p=>({label:p.label,link:p.link,uploading:false})):(m.link?[{label:'Part 1',link:m.link,uploading:false}]:[]);
+  renderVideoParts();
+  document.getElementById('vFormTitle').innerHTML=`<span><i class="fa fa-edit"></i> Editing: ${esc(m.title.substring(0,26))}</span>`;
+  document.getElementById('vSaveBtn').innerHTML='<i class="fa fa-save"></i> Update করুন';
+  document.getElementById('vSaveBtn').className='btn btn-blue';
+  document.getElementById('vCancelBtn').style.display='flex';
+}
+
+function resetVForm(){
+  editVKey=null;videoParts=[];renderVideoParts();
+  ['vTitle','vDesc','vThumb'].forEach(id=>setv(id,''));
+  onThumbUrlChange();
+  document.getElementById('vPremium').checked=false;
+  document.getElementById('vFormTitle').innerHTML='<span><i class="fa fa-upload"></i> নতুন ভিডিও আপলোড</span>';
+  document.getElementById('vSaveBtn').innerHTML='<i class="fa fa-cloud-upload-alt"></i> ভিডিও Save করুন';
+  document.getElementById('vSaveBtn').className='btn btn-green';
+  document.getElementById('vCancelBtn').style.display='none';
+}
+function deleteVideo(key){if(!confirm('এই ভিডিও ডিলিট করবেন?'))return;db.ref('movies/'+key).remove().then(()=>toast('✅ ডিলিট হয়েছে!'));}
+
+function renderVideoList(q){
+  q=(q||'').toLowerCase();
+  const list=document.getElementById('videoList');
+  const arr=q?movies.filter(m=>(m.title||'').toLowerCase().includes(q)):movies;
+  if(!arr.length){list.innerHTML='<div class="empty">কোনো ভিডিও নেই</div>';return;}
+  list.innerHTML=arr.map(m=>`<div class="li" data-id="${m.key}"><i class="fas fa-bars handle"></i><img class="thumb" src="${esc(m.thumb)}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'58\\' height=\\'38\\'><rect fill=\\'%23111\\' width=\\'58\\' height=\\'38\\'/></svg>'"><div class="ii"><div class="it">${esc(m.title)}${m.premiumContent?' <span style="font-size:8px;background:var(--gold);color:#000;padding:1px 5px;border-radius:4px">PREM</span>':''}</div><div class="is">${esc(m.category||'—')} | Views: ${m.views||0} | Parts: ${(m.parts||[]).length||1}</div></div><div class="act"><button class="btn btn-blue btn-sm" onclick="editVideo('${m.key}')"><i class="fa fa-edit"></i></button><button class="btn btn-red btn-sm" onclick="deleteVideo('${m.key}')"><i class="fa fa-trash"></i></button></div></div>`).join('');
+  if(!q) new Sortable(list,{animation:150,handle:'.handle'});
+}
+function saveVideoOrder(){
+  const o=Array.from(document.querySelectorAll('#videoList .li')).map(el=>el.getAttribute('data-id'));
+  if(!o.length)return;
+  db.ref('movieOrder').set(o).then(()=>toast('✅ Order সংরক্ষিত!'));
+}
+function renderDashRecentVideos(){
+  const el=document.getElementById('dashRecentVideos');if(!el)return;
+  const arr=movies.slice(0,5);
+  if(!arr.length){el.innerHTML='<div class="empty">এখনো কোনো ভিডিও নেই</div>';return;}
+  el.innerHTML=arr.map(m=>`<div class="li"><img class="thumb" src="${esc(m.thumb)}" onerror="this.style.opacity=0"><div class="ii"><div class="it">${esc(m.title)}</div><div class="is">${esc(m.category||'—')} | Views: ${m.views||0}</div></div></div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+//  CATEGORIES
+// ════════════════════════════════════════════════
+function renderCats(){
+  const el=document.getElementById('catList');
+  if(!categories.length){el.innerHTML='<div class="empty">কোনো ক্যাটাগরি নেই</div>';return;}
+  el.innerHTML=categories.map((c,i)=>`<div class="li" data-name="${esc(c)}"><i class="fas fa-bars handle"></i><div class="ii"><div class="it">${esc(c)}</div></div><div class="act"><button class="btn btn-blue btn-sm" onclick="editCat(${i})"><i class="fa fa-edit"></i></button><button class="btn btn-red btn-sm" onclick="deleteCat(${i})"><i class="fa fa-trash"></i></button></div></div>`).join('');
+  new Sortable(el,{animation:150,handle:'.handle'});
+}
+function doSaveCat(){
+  const name=document.getElementById('catInp').value.trim();if(!name)return;
+  if(editCatIdx!==null){categories[editCatIdx]=name;editCatIdx=null;}else categories.push(name);
+  db.ref('categories').set(categories).then(resetCatForm);
+}
+function editCat(i){editCatIdx=i;setv('catInp',categories[i]);document.getElementById('catSaveBtn').innerHTML='<i class="fa fa-save"></i> Update';document.getElementById('catSaveBtn').className='btn btn-blue';document.getElementById('catCancelBtn').style.display='flex';}
+function resetCatForm(){editCatIdx=null;setv('catInp','');document.getElementById('catSaveBtn').innerHTML='<i class="fa fa-plus"></i> Add Category';document.getElementById('catSaveBtn').className='btn btn-gold';document.getElementById('catCancelBtn').style.display='none';}
+function deleteCat(i){if(!confirm(`"${categories[i]}" ডিলিট করবেন?`))return;categories.splice(i,1);db.ref('categories').set(categories);}
+function saveCatOrder(){const o=Array.from(document.querySelectorAll('#catList .li')).map(el=>el.getAttribute('data-name'));db.ref('categories').set(o).then(()=>toast('✅ Order সংরক্ষিত!'));}
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+function setv(id,val){const el=document.getElementById(id);if(el)el.value=val;}
+function esc(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');}
+let _tt;
+function toast(msg){clearTimeout(_tt);const t=document.getElementById('toast');t.innerText=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';_tt=setTimeout(()=>{t.style.opacity='0';},3200);}
+
+document.getElementById('pinInp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+checkLocked();
+</script>
+</body>
+</html>
