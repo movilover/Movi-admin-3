@@ -324,6 +324,11 @@ let lockoutUntil   = parseInt(localStorage.getItem('adminV3Lockout')  || '0');
 const DEFAULT_PIN  = '53781';
 const OWNER_EMAIL_DEFAULT = 'omor.faruk.sojol.2@gmail.com';
 
+// Auto-fill defaults for Cloudinary (provided by the site owner) so the
+// admin doesn't have to type them in manually. If Firebase already has a
+// saved config, that will always take priority over these defaults.
+const DEFAULT_CLD_CONFIG = { cloudName:'movie_lover', uploadPreset:'paqs4n2j', folder:'' };
+
 function checkLocked(){
   if(Date.now() < lockoutUntil){
     const rem = Math.ceil((lockoutUntil - Date.now()) / 1000);
@@ -353,7 +358,6 @@ function doLogin(){
     if(!stored){
       if(entered === DEFAULT_PIN){
         db.ref('adminPinV3').set(DEFAULT_PIN);
-        if(!snap) {}
         db.ref('ownerEmail').once('value',es=>{ if(!es.val()) db.ref('ownerEmail').set(OWNER_EMAIL_DEFAULT); });
         clearAttempts();
         proceedToAdmin();
@@ -427,6 +431,14 @@ function initAdmin(){
     categories=d.categories||[];
     cldConfig=d.cloudinaryConfig||{cloudName:'',uploadPreset:'',folder:''};
 
+    // If nobody has saved a real Cloudinary config yet, auto-fill and
+    // persist the site owner's default Cloud Name / Upload Preset so
+    // uploads work immediately without any manual typing.
+    if(!cldConfig.cloudName || !cldConfig.uploadPreset){
+      cldConfig = {...DEFAULT_CLD_CONFIG};
+      db.ref('cloudinaryConfig').set({...DEFAULT_CLD_CONFIG, updatedAt:Date.now()});
+    }
+
     setv('cldCloudName',cldConfig.cloudName||'');
     setv('cldUploadPreset',cldConfig.uploadPreset||'');
     setv('cldFolder',cldConfig.folder||'');
@@ -475,6 +487,8 @@ function saveCloudinaryConfig(){
   if(!cloudName||!uploadPreset){toast('❌ Cloud Name ও Upload Preset দুটোই দিতে হবে!');return;}
   db.ref('cloudinaryConfig').set({cloudName,uploadPreset,folder,updatedAt:Date.now()}).then(()=>{
     toast('✅ Cloudinary সংরক্ষণ হয়েছে! এখন ভিডিও আপলোড করতে পারবেন।');
+  }).catch(err=>{
+    toast('❌ Firebase-এ সেভ ব্যর্থ: '+err.message);
   });
 }
 
@@ -492,7 +506,17 @@ async function testCloudinaryConfig(){
     const r=await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,{method:'POST',body:fd});
     const data=await r.json();
     if(data.secure_url){toast('✅ সংযোগ সফল! Cloudinary ঠিকমতো কাজ করছে।');}
-    else{toast('❌ সংযোগ ব্যর্থ: '+(data.error?.message||'Unknown error'));}
+    else{
+      // Give a clearer hint for the single most common failure cause.
+      const msg = data.error?.message || 'Unknown error';
+      if(/signed|signature|api_key/i.test(msg)){
+        toast('❌ ব্যর্থ: এই Preset "Signed" মোডে আছে। Cloudinary Dashboard → Settings → Upload → এই preset খুলে Signing Mode "Unsigned" করে Save করুন।');
+      } else if(/whitelist|not allowed|preset not found/i.test(msg)){
+        toast('❌ ব্যর্থ: Preset পাওয়া যায়নি বা Cloud Name ভুল। বানান আবার চেক করুন।');
+      } else {
+        toast('❌ সংযোগ ব্যর্থ: '+msg);
+      }
+    }
   }catch(e){toast('❌ সংযোগ ব্যর্থ: '+e.message);}
 }
 
